@@ -15,48 +15,33 @@ jobs:
         with:
           token: ${{ secrets.MOBAFIRE_REPO_TOKEN }}
 
-      - name: Install Dependencies
-        run: sudo apt-get install -y jq
+      - name: Checkout Footer Repository
+        uses: actions/checkout@v4
+        with:
+          repository: AlexEnnerfelt/moba-network-footer
+          path: footer-repo
+          token: ${{ secrets.FOOTER_REPO_TOKEN }}
 
-      - name: Read Footer.ini from Footer Repo
+      - name: Verify Footer.ini Exists
         run: |
-          FOOTER_FILE_URL="https://api.github.com/repos/AlexEnnerfelt/moba-network-footer/contents/footer.ini"
-          
-          # Fetch the file content as JSON
-          RESPONSE=$(curl -H "Authorization: Bearer ${{ secrets.FOOTER_REPO_TOKEN }}" -s "$FOOTER_FILE_URL")
+          FOOTER_FILE="footer-repo/footer.ini"
 
-          # Check if the API returned an error
-          if echo "$RESPONSE" | grep -q '"message": "Not Found"'; then
-            echo "❌ ERROR: footer.ini not found in the repository!"
+          if [ ! -f "$FOOTER_FILE" ]; then
+            echo "❌ ERROR: footer.ini not found in the footer repo!"
             exit 1
           fi
 
-          # Extract base64 content and decode it
-          FOOTER_CONTENT=$(echo "$RESPONSE" | jq -r '.content' | base64 --decode)
-
-          # Ensure content was extracted successfully
-          if [ -z "$FOOTER_CONTENT" ]; then
-            echo "❌ ERROR: Failed to extract footer.ini content!"
-            exit 1
-          fi
-
-          # Store decoded content into a file
-          echo "$FOOTER_CONTENT" > footer.ini
-          echo "✅ Successfully retrieved footer.ini"
+          echo "✅ Found footer.ini"
+          cat "$FOOTER_FILE"
 
       - name: Replace Section in constants.ini
         run: |
           CONFIG_FILE="public/private/config/constants.ini"
-          FOOTER_FILE="footer.ini"
+          FOOTER_FILE="footer-repo/footer.ini"
 
           # Ensure the files exist
           if [ ! -f "$CONFIG_FILE" ]; then
             echo "❌ ERROR: constants.ini not found!"
-            exit 1
-          fi
-
-          if [ ! -f "$FOOTER_FILE" ]; then
-            echo "❌ ERROR: footer.ini not found!"
             exit 1
           fi
 
@@ -72,6 +57,24 @@ jobs:
           echo "Extracted Names: $NEW_NAMES"
           echo "Extracted URLs: $NEW_URLS"
 
-          # Replace values in constants.ini (ensure the section exists first)
+          # Replace values in constants.ini
           if grep -q '^;network sites' "$CONFIG_FILE"; then
-            sed -i "/^;network sites/,/^$/s|names=.*|names=${NEW_NAMES}|" "$
+            sed -i "/^;network sites/,/^$/s|names=.*|names=${NEW_NAMES}|" "$CONFIG_FILE"
+            sed -i "/^;network sites/,/^$/s|urls=.*|urls=${NEW_URLS}|" "$CONFIG_FILE"
+            echo "✅ Updated constants.ini"
+          else
+            echo "❌ ERROR: ;network sites section not found in constants.ini!"
+            exit 1
+          fi
+
+      - name: Show Updated constants.ini
+        run: cat public/private/config/constants.ini
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add -A  # Ensure all changes are staged
+          git commit -m "Update network sites from footer repo" || echo "No changes to commit"
+          git push
