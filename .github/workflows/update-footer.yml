@@ -61,8 +61,8 @@ jobs:
           fi
 
           # Extract new arrays from footer.ini
-          NEW_NAMES=$(awk '/^\;network sites/,/^$/' "$FOOTER_FILE" | grep 'names=' | cut -d '=' -f2 | tr -d '\r')
-          NEW_URLS=$(awk '/^\;network sites/,/^$/' "$FOOTER_FILE" | grep 'urls=' | cut -d '=' -f2 | tr -d '\r')
+          NEW_NAMES=$(awk '/^;network sites/,/^$/' "$FOOTER_FILE" | grep 'names=' | cut -d '=' -f2 | tr -d '\r')
+          NEW_URLS=$(awk '/^;network sites/,/^$/' "$FOOTER_FILE" | grep 'urls=' | cut -d '=' -f2 | tr -d '\r')
 
           if [ -z "$NEW_NAMES" ] || [ -z "$NEW_URLS" ]; then
             echo "❌ ERROR: Failed to extract network site data from footer.ini!"
@@ -73,23 +73,5 @@ jobs:
           echo "Extracted URLs: $NEW_URLS"
 
           # Replace values in constants.ini (ensure the section exists first)
-          if grep -q '^\;network sites' "$CONFIG_FILE"; then
-            sed -i "/^\;network sites/,/^$/s|names=.*|names=${NEW_NAMES}|" "$CONFIG_FILE"
-            sed -i "/^\;network sites/,/^$/s|urls=.*|urls=${NEW_URLS}|" "$CONFIG_FILE"
-            echo "✅ Updated constants.ini"
-          else
-            echo "❌ ERROR: [NetworkSites] section not found in constants.ini!"
-            exit 1
-          fi
-
-      - name: Show Updated constants.ini
-        run: cat public/private/config/constants.ini
-
-      - name: Commit and Push Changes
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add -A  # Ensure all changes are staged
-          git commit -m "Update network sites from footer repo" || echo "No changes to commit"
-          git push
+          if grep -q '^;network sites' "$CONFIG_FILE"; then
+            sed -i "/^;network sites/,/^$/s|names=.*|names=${NEW_NAMES}|" "$
