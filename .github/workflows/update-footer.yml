@@ -24,7 +24,7 @@ jobs:
 
       - name: Verify Footer.ini Exists
         run: |
-          FOOTER_FILE="footer-repo/footer.ini"
+          FOOTER_FILE="moba-network-footer/footer.ini"
 
           if [ ! -f "$FOOTER_FILE" ]; then
             echo "❌ ERROR: footer.ini not found in the footer repo!"
