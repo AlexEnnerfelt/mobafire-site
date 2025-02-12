@@ -23,7 +23,7 @@ jobs:
           echo "Downloaded footer.ini:"
           cat footer.ini || echo "❌ Failed to fetch footer.ini"
 
-      - name: Debug: Check if footer.ini Exists
+      - name: Verify if footer.ini Exists
         run: |
           if [ -f footer.ini ]; then
             echo "✅ footer.ini exists"
@@ -49,7 +49,7 @@ jobs:
           sed -i "/^\[NetworkSites\]/,/^$/s|names=.*|names=${NEW_NAMES}|" "$CONFIG_FILE"
           sed -i "/^\[NetworkSites\]/,/^$/s|urls=.*|urls=${NEW_URLS}|" "$CONFIG_FILE"
 
-      - name: Debug: Show Changes Before Commit
+      - name: Show Changes Before Commit
         run: cat public/private/config/constants.ini
 
       - name: Commit and Push Changes
