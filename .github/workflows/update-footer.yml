@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main  # Runs only on push to the main branch
-  workflow_dispatch:
 
 jobs:
   update-footer:
@@ -16,38 +15,34 @@ jobs:
         with:
           token: ${{ secrets.MOBAFIRE_REPO_TOKEN }}
 
-      - name: Checkout Footer Repository
+      - name: Checkout Footer Repository (Read-Only)
         uses: actions/checkout@v4
         with:
           repository: AlexEnnerfelt/moba-network-footer
           path: moba-network-footer
           token: ${{ secrets.FOOTER_REPO_TOKEN }}
+          fetch-depth: 1  # Ensures only the latest version is fetched
 
-      - name: Verify Footer.ini Exists
+      - name: Read Data from footer.ini
         run: |
           FOOTER_FILE="moba-network-footer/footer.ini"
 
           if [ ! -f "$FOOTER_FILE" ]; then
-            echo "❌ ERROR: footer.ini not found in the footer repo!"
+            echo "❌ ERROR: footer.ini not found in moba-network-footer!"
             exit 1
           fi
 
           echo "✅ Found footer.ini"
           cat "$FOOTER_FILE"
 
-      - name: Replace Section in constants.ini
+      - name: Extract and Update constants.ini
         run: |
           CONFIG_FILE="public/private/config/constants.ini"
           FOOTER_FILE="moba-network-footer/footer.ini"
 
-          # Ensure the files exist
+          # Ensure files exist
           if [ ! -f "$CONFIG_FILE" ]; then
-            echo "❌ ERROR: constants.ini not found!"
-            exit 1
-          fi
-
-          if [ ! -f "$FOOTER_FILE" ]; then
-            echo "❌ ERROR: footer.ini not found!"
+            echo "❌ ERROR: constants.ini not found in Mobafire repo!"
             exit 1
           fi
 
@@ -76,11 +71,11 @@ jobs:
       - name: Show Updated constants.ini
         run: cat public/private/config/constants.ini
 
-      - name: Commit and Push Changes
+      - name: Commit and Push Changes to Mobafire
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add -A  # Ensure all changes are staged
-          git commit -m "Update network sites from footer repo" || echo "No changes to commit"
+          git add public/private/config/constants.ini  # Only commit this file
+          git commit -m "Update network sites from footer.ini" || echo "No changes to commit"
           git push
