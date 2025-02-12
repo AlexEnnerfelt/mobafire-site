@@ -21,7 +21,7 @@ jobs:
         run: |
           curl  -H "Authorization: Bearer ${{ secrets.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}}"
                 -o footer.ini \ 
-                https://raw.githubusercontent.com/AlexEnnerfelt/footer-repo/main/footer.ini
+                https://raw.githubusercontent.com/AlexEnnerfelt/moba-network-footer/main/footer.ini
       
       - name: Replace Section in constants.ini
         run: |
