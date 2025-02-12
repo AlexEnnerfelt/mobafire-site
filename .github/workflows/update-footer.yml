@@ -38,7 +38,7 @@ jobs:
         run: |
           CONFIG_FILE="public/private/config/constants.ini"
           FOOTER_FILE="moba-network-footer/footer.ini"
-          cat "$FOOTER_FILE"
+
           # Ensure the files exist
           if [ ! -f "$CONFIG_FILE" ]; then
             echo "❌ ERROR: constants.ini not found!"
@@ -50,9 +50,9 @@ jobs:
             exit 1
           fi
 
-          # Extract new arrays from footer.ini
-          NEW_NAMES=$(awk '/^;network sites/ {found=1; next} /^;/ {found=0} found && /names=/' "$FOOTER_FILE" | cut -d '=' -f2 | tr -d '\r')
-          NEW_URLS=$(awk '/^;network sites/ {found=1; next} /^;/ {found=0} found && /urls=/' "$FOOTER_FILE" | cut -d '=' -f2 | tr -d '\r')
+          # Extract new values from footer.ini
+          NEW_NAMES=$(awk -F '=' '/^SITE_NAMES=/ {gsub(/\[|\]/, "", $2); print $2}' "$FOOTER_FILE" | tr -d '\r')
+          NEW_URLS=$(awk -F '=' '/^SITE_URLS=/ {gsub(/\[|\]/, "", $2); print $2}' "$FOOTER_FILE" | tr -d '\r')
 
           if [ -z "$NEW_NAMES" ] || [ -z "$NEW_URLS" ]; then
             echo "❌ ERROR: Failed to extract network site data from footer.ini!"
@@ -64,8 +64,8 @@ jobs:
 
           # Replace values in constants.ini
           if grep -q '^;network sites' "$CONFIG_FILE"; then
-            sed -i "/^;network sites/,/^;/s|names=.*|names=${NEW_NAMES}|" "$CONFIG_FILE"
-            sed -i "/^;network sites/,/^;/s|urls=.*|urls=${NEW_URLS}|" "$CONFIG_FILE"
+            sed -i "/^;network sites/,/^;/s|SITE_NAMES=.*|SITE_NAMES=[$NEW_NAMES]|" "$CONFIG_FILE"
+            sed -i "/^;network sites/,/^;/s|SITE_URLS=.*|SITE_URLS=[$NEW_URLS]|" "$CONFIG_FILE"
             echo "✅ Updated constants.ini"
           else
             echo "❌ ERROR: ;network sites section not found in constants.ini!"
