@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: AlexEnnerfelt/moba-network-footer
-          path: footer-repo
+          path: moba-network-footer
           token: ${{ secrets.FOOTER_REPO_TOKEN }}
 
       - name: Verify Footer.ini Exists
@@ -37,7 +37,7 @@ jobs:
       - name: Replace Section in constants.ini
         run: |
           CONFIG_FILE="public/private/config/constants.ini"
-          FOOTER_FILE="footer-repo/footer.ini"
+          FOOTER_FILE="moba-network-footer/footer.ini"
 
           # Ensure the files exist
           if [ ! -f "$CONFIG_FILE" ]; then
@@ -45,22 +45,27 @@ jobs:
             exit 1
           fi
 
+          if [ ! -f "$FOOTER_FILE" ]; then
+            echo "❌ ERROR: footer.ini not found!"
+            exit 1
+          fi
+
           # Extract new arrays from footer.ini
-          NEW_NAMES=$(awk '/^;network sites/,/^$/' "$FOOTER_FILE" | grep 'names=' | cut -d '=' -f2 | tr -d '\r')
-          NEW_URLS=$(awk '/^;network sites/,/^$/' "$FOOTER_FILE" | grep 'urls=' | cut -d '=' -f2 | tr -d '\r')
+          NEW_NAMES=$(awk '/^;network sites/ {found=1; next} /^;/ {found=0} found && /names=/' "$FOOTER_FILE" | cut -d '=' -f2 | tr -d '\r')
+          NEW_URLS=$(awk '/^;network sites/ {found=1; next} /^;/ {found=0} found && /urls=/' "$FOOTER_FILE" | cut -d '=' -f2 | tr -d '\r')
 
           if [ -z "$NEW_NAMES" ] || [ -z "$NEW_URLS" ]; then
             echo "❌ ERROR: Failed to extract network site data from footer.ini!"
             exit 1
           fi
 
-          echo "Extracted Names: $NEW_NAMES"
-          echo "Extracted URLs: $NEW_URLS"
+          echo "✅ Extracted Names: $NEW_NAMES"
+          echo "✅ Extracted URLs: $NEW_URLS"
 
           # Replace values in constants.ini
           if grep -q '^;network sites' "$CONFIG_FILE"; then
-            sed -i "/^;network sites/,/^$/s|names=.*|names=${NEW_NAMES}|" "$CONFIG_FILE"
-            sed -i "/^;network sites/,/^$/s|urls=.*|urls=${NEW_URLS}|" "$CONFIG_FILE"
+            sed -i "/^;network sites/,/^;/s|names=.*|names=${NEW_NAMES}|" "$CONFIG_FILE"
+            sed -i "/^;network sites/,/^;/s|urls=.*|urls=${NEW_URLS}|" "$CONFIG_FILE"
             echo "✅ Updated constants.ini"
           else
             echo "❌ ERROR: ;network sites section not found in constants.ini!"
