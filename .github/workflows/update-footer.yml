@@ -15,47 +15,74 @@ jobs:
         with:
           token: ${{ secrets.MOBAFIRE_REPO_TOKEN }}
 
-      - name: Fetch Latest Footer Data
+      - name: Install Dependencies
+        run: sudo apt-get install -y jq
+
+      - name: Read Footer.ini from Footer Repo
         run: |
-          curl -H "Authorization: Bearer ${{ secrets.FOOTER_REPO_TOKEN }}" \
-               -o footer.ini \
-               -w "%{http_code}" \
-               https://raw.githubusercontent.com/AlexEnnerfelt/footer-repo/main/footer.ini
-          echo "Download completed with status: $?"
-      
-          if [ ! -s footer.ini ]; then
-            echo "❌ ERROR: footer.ini is empty or missing!"
+          FOOTER_FILE_URL="https://api.github.com/repos/AlexEnnerfelt/footer-repo/contents/footer.ini"
+          
+          # Fetch the file content as JSON
+          RESPONSE=$(curl -H "Authorization: Bearer ${{ secrets.FOOTER_REPO_TOKEN }}" -s "$FOOTER_FILE_URL")
+
+          # Check if the API returned an error
+          if echo "$RESPONSE" | grep -q '"message": "Not Found"'; then
+            echo "❌ ERROR: footer.ini not found in the repository!"
             exit 1
           fi
 
+          # Extract base64 content and decode it
+          FOOTER_CONTENT=$(echo "$RESPONSE" | jq -r '.content' | base64 --decode)
 
-      - name: Verify if footer.ini Exists
-        run: |
-          if [ -f footer.ini ]; then
-            echo "✅ footer.ini exists"
-            cat footer.ini
-          else
-            echo "❌ ERROR: footer.ini not found!"
-            ls -la  # List files to see what's in the directory
+          # Ensure content was extracted successfully
+          if [ -z "$FOOTER_CONTENT" ]; then
+            echo "❌ ERROR: Failed to extract footer.ini content!"
+            exit 1
           fi
+
+          # Store decoded content into a file
+          echo "$FOOTER_CONTENT" > footer.ini
+          echo "✅ Successfully retrieved footer.ini"
 
       - name: Replace Section in constants.ini
         run: |
           CONFIG_FILE="public/private/config/constants.ini"
           FOOTER_FILE="footer.ini"
 
+          # Ensure the files exist
+          if [ ! -f "$CONFIG_FILE" ]; then
+            echo "❌ ERROR: constants.ini not found!"
+            exit 1
+          fi
+
+          if [ ! -f "$FOOTER_FILE" ]; then
+            echo "❌ ERROR: footer.ini not found!"
+            exit 1
+          fi
+
           # Extract new arrays from footer.ini
-          NEW_NAMES=$(awk '/^\[NetworkSites\]/,/^$/' "$FOOTER_FILE" | grep 'names=' | cut -d '=' -f2)
-          NEW_URLS=$(awk '/^\[NetworkSites\]/,/^$/' "$FOOTER_FILE" | grep 'urls=' | cut -d '=' -f2)
+          NEW_NAMES=$(awk '/^\[NetworkSites\]/,/^$/' "$FOOTER_FILE" | grep 'names=' | cut -d '=' -f2 | tr -d '\r')
+          NEW_URLS=$(awk '/^\[NetworkSites\]/,/^$/' "$FOOTER_FILE" | grep 'urls=' | cut -d '=' -f2 | tr -d '\r')
+
+          if [ -z "$NEW_NAMES" ] || [ -z "$NEW_URLS" ]; then
+            echo "❌ ERROR: Failed to extract network site data from footer.ini!"
+            exit 1
+          fi
 
           echo "Extracted Names: $NEW_NAMES"
           echo "Extracted URLs: $NEW_URLS"
 
-          # Replace values in constants.ini
-          sed -i "/^\[NetworkSites\]/,/^$/s|names=.*|names=${NEW_NAMES}|" "$CONFIG_FILE"
-          sed -i "/^\[NetworkSites\]/,/^$/s|urls=.*|urls=${NEW_URLS}|" "$CONFIG_FILE"
+          # Replace values in constants.ini (ensure the section exists first)
+          if grep -q '^\[NetworkSites\]' "$CONFIG_FILE"; then
+            sed -i "/^\[NetworkSites\]/,/^$/s|names=.*|names=${NEW_NAMES}|" "$CONFIG_FILE"
+            sed -i "/^\[NetworkSites\]/,/^$/s|urls=.*|urls=${NEW_URLS}|" "$CONFIG_FILE"
+            echo "✅ Updated constants.ini"
+          else
+            echo "❌ ERROR: [NetworkSites] section not found in constants.ini!"
+            exit 1
+          fi
 
-      - name: Show Changes Before Commit
+      - name: Show Updated constants.ini
         run: cat public/private/config/constants.ini
 
       - name: Commit and Push Changes
