@@ -13,19 +13,19 @@ jobs:
       - name: Checkout Mobafire Repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.MOBAFIRE_REPO_TOKEN }}
+          token: ${{ secrets.MOBAFIRE_REPO_TOKEN }}   #Add a secret variable here that has read/write access to this repo
 
       - name: Checkout Footer Repository (Read-Only)
         uses: actions/checkout@v4
         with:
-          repository: AlexEnnerfelt/moba-network-footer
+          repository: AlexEnnerfelt/moba-network-footer   #Add the actual Footer repo
           path: moba-network-footer
-          token: ${{ secrets.FOOTER_REPO_TOKEN }}
+          token: ${{ secrets.FOOTER_REPO_TOKEN }}      #Add a token with read access to the footer repo with this name to variables
           fetch-depth: 1  # Ensures only the latest version is fetched
 
       - name: Read Data from footer.ini
         run: |
-          FOOTER_FILE="moba-network-footer/footer.ini"
+          FOOTER_FILE="moba-network-footer/footer.ini"     #Rename this if the repo is called something else
 
           if [ ! -f "$FOOTER_FILE" ]; then
             echo "❌ ERROR: footer.ini not found in moba-network-footer!"
@@ -37,8 +37,8 @@ jobs:
 
       - name: Extract and Update constants.ini
         run: |
-          CONFIG_FILE="public/private/config/constants.ini"
-          FOOTER_FILE="moba-network-footer/footer.ini"
+          CONFIG_FILE="public/private/config/constants.ini"     #This will work on mobafire with the constants.ini path
+          FOOTER_FILE="moba-network-footer/footer.ini"       #Rename this if the repo is called something else
 
           # Ensure files exist
           if [ ! -f "$CONFIG_FILE" ]; then
@@ -71,11 +71,17 @@ jobs:
       - name: Show Updated constants.ini
         run: cat public/private/config/constants.ini
 
-      - name: Commit and Push Changes to Mobafire
+      - name: Commit and Push Changes to Mobafire (Only If Needed)
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Check if constants.ini was modified
+          if git diff --quiet public/private/config/constants.ini; then
+            echo "✅ No changes detected in constants.ini. Skipping commit and push."
+            exit 0
+          fi
+
           git add public/private/config/constants.ini  # Only commit this file
-          git commit -m "Update network sites from footer.ini" || echo "No changes to commit"
+          git commit -m "Update network sites from footer.ini"
           git push
