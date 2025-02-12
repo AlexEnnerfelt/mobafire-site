@@ -19,7 +19,7 @@ jobs:
       
       - name: Fetch Latest Footer Data
         run: |
-          curl -H "Authorization: Bearer ${{ secrets.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}}" \
+          curl -H "Authorization: Bearer ${{ secrets.FOOTER_REPO_TOKEN}}" \
                -o footer.ini \
                https://raw.githubusercontent.com/AlexEnnerfelt/moba-network-footer/main/footer.ini
       
