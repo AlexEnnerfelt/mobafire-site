@@ -20,7 +20,7 @@ jobs:
 
       - name: Read Footer.ini from Footer Repo
         run: |
-          FOOTER_FILE_URL="https://api.github.com/repos/AlexEnnerfelt/moba-network-footer/footer.ini"
+          FOOTER_FILE_URL="https://api.github.com/repos/AlexEnnerfelt/moba-network-footer/contents/footer.ini"
           
           # Fetch the file content as JSON
           RESPONSE=$(curl -H "Authorization: Bearer ${{ secrets.FOOTER_REPO_TOKEN }}" -s "$FOOTER_FILE_URL")
