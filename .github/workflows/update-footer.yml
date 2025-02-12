@@ -61,8 +61,8 @@ jobs:
           fi
 
           # Extract new arrays from footer.ini
-          NEW_NAMES=$(awk '/^\[NetworkSites\]/,/^$/' "$FOOTER_FILE" | grep 'names=' | cut -d '=' -f2 | tr -d '\r')
-          NEW_URLS=$(awk '/^\[NetworkSites\]/,/^$/' "$FOOTER_FILE" | grep 'urls=' | cut -d '=' -f2 | tr -d '\r')
+          NEW_NAMES=$(awk '/^\;network sites/,/^$/' "$FOOTER_FILE" | grep 'names=' | cut -d '=' -f2 | tr -d '\r')
+          NEW_URLS=$(awk '/^\;network sites/,/^$/' "$FOOTER_FILE" | grep 'urls=' | cut -d '=' -f2 | tr -d '\r')
 
           if [ -z "$NEW_NAMES" ] || [ -z "$NEW_URLS" ]; then
             echo "❌ ERROR: Failed to extract network site data from footer.ini!"
@@ -73,9 +73,9 @@ jobs:
           echo "Extracted URLs: $NEW_URLS"
 
           # Replace values in constants.ini (ensure the section exists first)
-          if grep -q '^\[NetworkSites\]' "$CONFIG_FILE"; then
-            sed -i "/^\[NetworkSites\]/,/^$/s|names=.*|names=${NEW_NAMES}|" "$CONFIG_FILE"
-            sed -i "/^\[NetworkSites\]/,/^$/s|urls=.*|urls=${NEW_URLS}|" "$CONFIG_FILE"
+          if grep -q '^\;network sites' "$CONFIG_FILE"; then
+            sed -i "/^\;network sites/,/^$/s|names=.*|names=${NEW_NAMES}|" "$CONFIG_FILE"
+            sed -i "/^\;network sites/,/^$/s|urls=.*|urls=${NEW_URLS}|" "$CONFIG_FILE"
             echo "✅ Updated constants.ini"
           else
             echo "❌ ERROR: [NetworkSites] section not found in constants.ini!"
