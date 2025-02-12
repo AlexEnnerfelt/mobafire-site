@@ -15,7 +15,7 @@ jobs:
       - name: Checkout Mobafire Repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.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 }}
+          token: ${{ secrets.MOBAFIRE_REPO_TOKEN }}
       
       - name: Fetch Latest Footer Data
         run: |
