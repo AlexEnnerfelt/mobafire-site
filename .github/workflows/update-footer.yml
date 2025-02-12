@@ -1,0 +1,45 @@
+name: Update Network Sites
+
+on:
+  push:
+    branches:
+    - main
+    
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  update-footer:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Mobafire Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Fetch Latest Footer Data
+        run: |
+          curl  -H "Authorization: token ${{ secrets.FOOTER_REPO_TOKEN }}"-o footer.ini https://raw.githubusercontent.com/AlexEnnerfelt/footer-repo/main/footer.ini
+      
+      - name: Replace Section in constants.ini
+        run: |
+          # Define file paths
+          CONFIG_FILE="public/private/config/constants.ini"
+          FOOTER_FILE="footer.ini"
+
+          # Extract new arrays from footer.ini
+          NEW_NAMES=$(awk '/^\[NetworkSites\]/,/^$/' $FOOTER_FILE | grep 'names=' | cut -d '=' -f2)
+          NEW_URLS=$(awk '/^\[NetworkSites\]/,/^$/' $FOOTER_FILE | grep 'urls=' | cut -d '=' -f2)
+
+          # Replace values in constants.ini
+          sed -i "/^\[NetworkSites\]/,/^$/s|names=.*|names=${NEW_NAMES}|" $CONFIG_FILE
+          sed -i "/^\[NetworkSites\]/,/^$/s|urls=.*|urls=${NEW_URLS}|" $CONFIG_FILE
+      
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add public/private/config/constants.ini
+          git commit -m "Update network sites from footer repo" || echo "No changes to commit"
+          git push
