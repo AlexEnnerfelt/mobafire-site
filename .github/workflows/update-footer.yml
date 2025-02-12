@@ -16,12 +16,18 @@ jobs:
           token: ${{ secrets.MOBAFIRE_REPO_TOKEN }}
 
       - name: Fetch Latest Footer Data
-        run: |
-          curl -H "Authorization: Bearer ${{ secrets.FOOTER_REPO_TOKEN }}" \
-               -o footer.ini \
-               https://raw.githubusercontent.com/AlexEnnerfelt/footer-repo/main/footer.ini
-          echo "Downloaded footer.ini:"
-          cat footer.ini || echo "❌ Failed to fetch footer.ini"
+  run: |
+    curl -H "Authorization: Bearer ${{ secrets.FOOTER_REPO_TOKEN }}" \
+         -o footer.ini \
+         -w "%{http_code}" \
+         https://raw.githubusercontent.com/AlexEnnerfelt/footer-repo/main/footer.ini
+    echo "Download completed with status: $?"
+
+    if [ ! -s footer.ini ]; then
+      echo "❌ ERROR: footer.ini is empty or missing!"
+      exit 1
+    fi
+
 
       - name: Verify if footer.ini Exists
         run: |
