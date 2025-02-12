@@ -22,6 +22,7 @@ jobs:
           curl -H "Authorization: Bearer ${{ secrets.FOOTER_REPO_TOKEN}}" \
                -o footer.ini \
                https://raw.githubusercontent.com/AlexEnnerfelt/moba-network-footer/main/footer.ini
+               
       - name: Debug: Show Fetched Footer Data
         run: cat footer.ini
 
@@ -38,6 +39,7 @@ jobs:
           # Replace values in constants.ini
           sed -i "/^\[NetworkSites\]/,/^$/s|names=.*|names=${NEW_NAMES}|" $CONFIG_FILE
           sed -i "/^\[NetworkSites\]/,/^$/s|urls=.*|urls=${NEW_URLS}|" $CONFIG_FILE
+          
       - name: Debug: Show Changes Before Commit
         run: cat public/private/config/constants.ini
 
